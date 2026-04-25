@@ -1,9 +1,9 @@
 class AttendanceRecord {
   final String studentId;
-  String status;
+  String status; // 'present' or 'absent'
   String? remark;
 
-  AttendanceRecord({required this.studentId, this.status = 'absent', this.remark});
+  AttendanceRecord({required this.studentId, this.status = 'present', this.remark});
 
   Map<String, dynamic> toJson() => {
         'student': studentId,
@@ -43,7 +43,6 @@ class AttendanceSession {
 
   int get presentCount => records.where((r) => r['status'] == 'present').length;
   int get absentCount  => records.where((r) => r['status'] == 'absent').length;
-  int get lateCount    => records.where((r) => r['status'] == 'late').length;
   int get totalCount   => records.length;
 }
 

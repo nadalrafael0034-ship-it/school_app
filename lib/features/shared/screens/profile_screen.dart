@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/providers/auth_provider.dart';
-import '../widgets/role_badge.dart';
+import '../../../data/providers/teacher_provider.dart';
+import '../../shared/widgets/role_badge.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -66,6 +67,22 @@ class ProfileScreen extends StatelessWidget {
             if (user.classInfo != null)
               _infoTile(Icons.class_outlined, 'Class', user.classInfo!.displayName),
 
+            // Class Teacher display for teachers
+            if (user.role == 'teacher')
+              Consumer<TeacherProvider>(
+                builder: (context, teacherProv, _) {
+                  if (teacherProv.classTeacherClasses.isNotEmpty) {
+                    final names = teacherProv.classTeacherClasses
+                        .map((c) => c.displayName)
+                        .join('\n');
+                    return _infoTile(
+                        Icons.stars_rounded, 'Class Teacher Of', names,
+                        iconColor: AppTheme.teacherColor);
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
             const SizedBox(height: 24),
 
             // ── Change Password ───────────────────────────────────
@@ -113,7 +130,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _infoTile(IconData icon, String label, String value) {
+  Widget _infoTile(IconData icon, String label, String value,
+      {Color? iconColor}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -123,18 +141,25 @@ class ProfileScreen extends StatelessWidget {
         border: Border.all(color: AppTheme.dividerColor),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppTheme.primaryColor, size: 20),
+          Icon(icon, color: iconColor ?? AppTheme.primaryColor, size: 20),
           const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: GoogleFonts.poppins(fontSize: 11, color: Colors.white38)),
-              Text(value,
-                  style:
-                      GoogleFonts.poppins(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: GoogleFonts.poppins(
+                        fontSize: 11, color: Colors.white38)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500)),
+              ],
+            ),
           ),
         ],
       ),

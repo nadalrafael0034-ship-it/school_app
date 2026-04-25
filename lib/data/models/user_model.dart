@@ -36,7 +36,8 @@ class UserModel {
           ? ClassInfo.fromJson(json['class'])
           : null,
       subjects: (json['subjects'] as List<dynamic>?)
-              ?.map((s) => SubjectInfo.fromJson(s))
+              ?.whereType<Map<String, dynamic>>()
+              .map((s) => SubjectInfo.fromJson(s))
               .toList() ??
           [],
       isActive: json['isActive'] ?? true,

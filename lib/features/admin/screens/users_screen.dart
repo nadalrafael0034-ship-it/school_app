@@ -31,6 +31,7 @@ class _UsersScreenState extends State<UsersScreen>
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AdminProvider>().fetchUsers();
+      context.read<AdminProvider>().fetchClasses();
     });
   }
 
@@ -96,6 +97,40 @@ class _UsersScreenState extends State<UsersScreen>
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (_, i) => _UserCard(
                         user: provider.users[i],
+                        onEdit: () async {
+                          final u = provider.users[i];
+                          // Find class teacher class from the classes list
+                          final classes = provider.classes;
+                          String? classTeacherClassId;
+                          for (final c in classes) {
+                            if (c.classTeacherId == u.id) {
+                              classTeacherClassId = c.id;
+                              break;
+                            }
+                          }
+                          final result = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddUserScreen(
+                                editUser: {
+                                  'id': u.id,
+                                  'name': u.name,
+                                  'email': u.email,
+                                  'phone': u.phone ?? '',
+                                  'role': u.role,
+                                  'rollNumber': u.rollNumber ?? '',
+                                  'employeeId': u.employeeId ?? '',
+                                  'classId': u.classInfo?.id,
+                                  'classTeacherClassId': classTeacherClassId,
+                                },
+                              ),
+                            ),
+                          );
+                          if (result == true && context.mounted) {
+                            provider.fetchUsers(role: _roles[_tabCtrl.index]);
+                            provider.fetchClasses();
+                          }
+                        },
                         onDeactivate: () async {
                           final confirm = await _confirmDialog(
                               context, 'Deactivate ${provider.users[i].name}?');
@@ -134,8 +169,9 @@ class _UsersScreenState extends State<UsersScreen>
 class _UserCard extends StatelessWidget {
   final UserModel user;
   final VoidCallback onDeactivate;
+  final VoidCallback onEdit;
 
-  const _UserCard({required this.user, required this.onDeactivate});
+  const _UserCard({required this.user, required this.onDeactivate, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -181,9 +217,19 @@ class _UserCard extends StatelessWidget {
           color: AppTheme.cardColor,
           icon: const Icon(Icons.more_vert, color: Colors.white38),
           onSelected: (v) {
+            if (v == 'edit') onEdit();
             if (v == 'deactivate') onDeactivate();
           },
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: Row(children: [
+                Icon(Icons.edit_outlined, color: AppTheme.teacherColor, size: 16),
+                const SizedBox(width: 8),
+                Text('Edit',
+                    style: GoogleFonts.poppins(color: AppTheme.teacherColor)),
+              ]),
+            ),
             PopupMenuItem(
               value: 'deactivate',
               child: Row(children: [

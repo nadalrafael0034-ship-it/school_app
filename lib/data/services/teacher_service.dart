@@ -25,26 +25,27 @@ class TeacherService {
         .toList();
   }
 
+  /// Check if morning attendance is already submitted for today
+  Future<Map<String, dynamic>> checkTodayAttendance(String classId) async {
+    final r = await _api.get('/teacher/attendance/$classId/today');
+    return r.data;
+  }
+
+  /// Submit morning first-period attendance (no subject needed)
   Future<void> markAttendance({
     required String classId,
-    required String subjectId,
     required String date,
     required List<AttendanceRecord> records,
   }) async {
     await _api.post('/teacher/attendance', data: {
       'classId': classId,
-      'subjectId': subjectId,
       'date': date,
       'records': records.map((r) => r.toJson()).toList(),
     });
   }
 
-  Future<List<AttendanceSession>> getClassAttendance(String classId,
-      {String? subjectId}) async {
-    final params = <String, dynamic>{};
-    if (subjectId != null) params['subjectId'] = subjectId;
-    final r = await _api.get('/teacher/attendance/$classId',
-        queryParameters: params);
+  Future<List<AttendanceSession>> getClassAttendance(String classId) async {
+    final r = await _api.get('/teacher/attendance/$classId');
     return (r.data['attendance'] as List)
         .map((a) => AttendanceSession.fromJson(a))
         .toList();

@@ -142,7 +142,6 @@ class _ClassReportScreenState extends State<ClassReportScreen> {
                             item['student'] as Map? ?? {};
                         final present = item['present'] ?? 0;
                         final absent = item['absent'] ?? 0;
-                        final late = item['late'] ?? 0;
                         final total = item['total'] ?? 1;
                         final pct =
                             (item['percentage'] ?? 0.0).toDouble();
@@ -199,16 +198,13 @@ class _ClassReportScreenState extends State<ClassReportScreen> {
                               const SizedBox(height: 10),
                               Row(
                                 children: [
-                                  _mini('P', '$present',
+                                  _mini('Present', '$present',
                                       AppTheme.successColor),
                                   const SizedBox(width: 8),
-                                  _mini('A', '$absent',
+                                  _mini('Absent', '$absent',
                                       AppTheme.dangerColor),
-                                  const SizedBox(width: 8),
-                                  _mini('L', '$late',
-                                      AppTheme.warningColor),
                                   const Spacer(),
-                                  Text('/$total sessions',
+                                  Text('/ $total days',
                                       style: GoogleFonts.poppins(
                                           color: Colors.white38,
                                           fontSize: 11)),

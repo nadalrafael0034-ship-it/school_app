@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/providers/auth_provider.dart';
 import '../../data/providers/teacher_provider.dart';
 import '../shared/screens/profile_screen.dart';
 import 'screens/teacher_dashboard.dart';
@@ -27,6 +28,8 @@ class _TeacherShellState extends State<TeacherShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = context.read<AuthProvider>().currentUser?.id;
+      context.read<TeacherProvider>().setCurrentUserId(userId);
       context.read<TeacherProvider>().fetchDashboard();
       context.read<TeacherProvider>().fetchMyClasses();
     });

@@ -1,15 +1,22 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
+  // Dev
+  // static String get baseUrl {
+  //   if (kIsWeb) return 'http://localhost:5000/api';
+  //   if (defaultTargetPlatform == TargetPlatform.windows ||
+  //       defaultTargetPlatform == TargetPlatform.linux ||
+  //       defaultTargetPlatform == TargetPlatform.macOS) {
+  //     return 'http://localhost:5000/api';
+  //   }
+  //   // Android emulator — change to your PC LAN IP for real device e.g. http://192.168.1.5:5000/api
+  //   return 'http://10.0.2.2:5000/api';
+  // }
+
+  // Sit
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:5000/api';
-    if (defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.linux ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
-      return 'http://localhost:5000/api';
-    }
-    // Android emulator — change to your PC LAN IP for real device e.g. http://192.168.1.5:5000/api
-    return 'http://10.0.2.2:5000/api';
+    return 'http://localhost:5000/api'; // https://school-app-backend-5x5w.onrender.com/api
+    // Now all your route constants work as-is ✅
   }
 
   // Auth

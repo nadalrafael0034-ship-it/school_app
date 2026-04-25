@@ -59,6 +59,22 @@ class AdminService {
     });
   }
 
+  /// Set a teacher as class teacher of a specific class
+  Future<void> setClassTeacher(
+      String teacherId, String classId) async {
+    await _api.put('/admin/users/$teacherId', data: {
+      'classTeacherId': classId,
+    });
+  }
+
+  /// Remove a teacher's class teacher role
+  Future<void> removeClassTeacher(String teacherId) async {
+    await _api.put('/admin/users/$teacherId', data: {
+      'removeClassTeacher': true,
+    });
+  }
+
+
   // ── Subjects ───────────────────────────────────────────────
   Future<List<SubjectModel>> getAllSubjects() async {
     final r = await _api.get('/admin/subjects');

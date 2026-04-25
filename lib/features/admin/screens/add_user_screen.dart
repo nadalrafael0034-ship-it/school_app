@@ -5,7 +5,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/providers/admin_provider.dart';
 
 class AddUserScreen extends StatefulWidget {
-  const AddUserScreen({super.key});
+  /// Pass a UserModel-like map to pre-fill fields for editing.
+  final Map<String, dynamic>? editUser;
+
+  const AddUserScreen({super.key, this.editUser});
 
   @override
   State<AddUserScreen> createState() => _AddUserScreenState();
@@ -21,9 +24,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _empIdCtrl = TextEditingController();
 
   String _selectedRole = 'student';
-  String? _selectedClassId;
+  String? _selectedClassId;       // For students: their class
+  String? _classTeacherClassId;   // For teachers: class they are class teacher of
+  bool _isClassTeacher = false;
   bool _obscurePassword = true;
   bool _isSubmitting = false;
+
+  bool get _isEditing => widget.editUser != null;
 
   @override
   void initState() {
@@ -31,6 +38,20 @@ class _AddUserScreenState extends State<AddUserScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AdminProvider>().fetchClasses();
     });
+
+    // Pre-fill if editing
+    if (_isEditing) {
+      final u = widget.editUser!;
+      _nameCtrl.text = u['name'] ?? '';
+      _emailCtrl.text = u['email'] ?? '';
+      _phoneCtrl.text = u['phone'] ?? '';
+      _rollCtrl.text = u['rollNumber'] ?? '';
+      _empIdCtrl.text = u['employeeId'] ?? '';
+      _selectedRole = u['role'] ?? 'student';
+      _selectedClassId = u['classId'];
+      _classTeacherClassId = u['classTeacherClassId'];
+      _isClassTeacher = _classTeacherClassId != null;
+    }
   }
 
   @override
@@ -51,7 +72,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'email': _emailCtrl.text.trim(),
-      'password': _passwordCtrl.text,
       'role': _selectedRole,
       if (_phoneCtrl.text.isNotEmpty) 'phone': _phoneCtrl.text.trim(),
       if (_selectedRole == 'student' && _rollCtrl.text.isNotEmpty)
@@ -60,24 +80,40 @@ class _AddUserScreenState extends State<AddUserScreen> {
         'class': _selectedClassId,
       if (_selectedRole == 'teacher' && _empIdCtrl.text.isNotEmpty)
         'employeeId': _empIdCtrl.text.trim(),
+      // Class teacher assignment
+      if (_selectedRole == 'teacher' && _isClassTeacher && _classTeacherClassId != null)
+        'classTeacherId': _classTeacherClassId,
+      if (_selectedRole == 'teacher' && !_isClassTeacher && _isEditing)
+        'removeClassTeacher': true,
     };
 
+    if (!_isEditing) {
+      data['password'] = _passwordCtrl.text;
+    }
+
     final provider = context.read<AdminProvider>();
-    final success = await provider.createUser(data);
+    bool success;
+    if (_isEditing) {
+      success = await provider.updateUser(widget.editUser!['id'], data);
+    } else {
+      success = await provider.createUser(data);
+    }
 
     if (mounted) {
       setState(() => _isSubmitting = false);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('User created successfully!'),
+          SnackBar(
+              content: Text(_isEditing
+                  ? 'User updated successfully!'
+                  : 'User created successfully!'),
               backgroundColor: AppTheme.successColor),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(provider.error ?? 'Failed to create user'),
+              content: Text(provider.error ?? 'Operation failed'),
               backgroundColor: AppTheme.dangerColor),
         );
       }
@@ -91,7 +127,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
       appBar: AppBar(
-        title: const Text('Add New User'),
+        title: Text(_isEditing ? 'Edit User' : 'Add New User'),
         backgroundColor: const Color(0xFF0F0F1A),
       ),
       body: SingleChildScrollView(
@@ -101,7 +137,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Role selector
+              // Role selector (locked when editing)
               _sectionTitle('Role'),
               const SizedBox(height: 10),
               Row(
@@ -110,7 +146,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   final color = AppTheme.getRoleColor(role);
                   return Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _selectedRole = role),
+                      onTap: _isEditing
+                          ? null
+                          : () => setState(() {
+                                _selectedRole = role;
+                                _isClassTeacher = false;
+                                _classTeacherClassId = null;
+                              }),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.only(right: 8),
@@ -152,29 +194,31 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   validator: (v) =>
                       v!.isEmpty || !v.contains('@') ? 'Valid email required' : null),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordCtrl,
-                obscureText: _obscurePassword,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline,
-                      color: AppTheme.primaryColor, size: 20),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: Colors.white38,
-                        size: 20),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
+              if (!_isEditing) ...[
+                TextFormField(
+                  controller: _passwordCtrl,
+                  obscureText: _obscurePassword,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline,
+                        color: AppTheme.primaryColor, size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.white38,
+                          size: 20),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
                   ),
+                  validator: (v) =>
+                      v!.length < 6 ? 'Min 6 characters' : null,
                 ),
-                validator: (v) =>
-                    v!.length < 6 ? 'Min 6 characters' : null,
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               _field(_phoneCtrl, 'Phone (optional)', Icons.phone_outlined),
 
               // Student-specific fields
@@ -211,6 +255,98 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 _sectionTitle('Teacher Details'),
                 const SizedBox(height: 10),
                 _field(_empIdCtrl, 'Employee ID', Icons.work_outline),
+                const SizedBox(height: 16),
+
+                // ── Class Teacher Toggle ──────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _isClassTeacher
+                        ? AppTheme.teacherColor.withOpacity(0.1)
+                        : AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _isClassTeacher
+                          ? AppTheme.teacherColor.withOpacity(0.5)
+                          : AppTheme.dividerColor,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.teacherColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.stars_rounded,
+                                color: AppTheme.teacherColor, size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Class Teacher',
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                                Text(
+                                    'Can take daily morning roll call',
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.white38, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _isClassTeacher,
+                            onChanged: (v) => setState(() {
+                              _isClassTeacher = v;
+                              if (!v) _classTeacherClassId = null;
+                            }),
+                            activeColor: AppTheme.teacherColor,
+                            inactiveTrackColor: Colors.white12,
+                          ),
+                        ],
+                      ),
+                      if (_isClassTeacher) ...[
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _classTeacherClassId,
+                          dropdownColor: AppTheme.cardColor,
+                          style: GoogleFonts.poppins(
+                              color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            labelText: 'Assign as Class Teacher of',
+                            labelStyle: GoogleFonts.poppins(
+                                color: Colors.white38, fontSize: 12),
+                            prefixIcon: const Icon(Icons.class_outlined,
+                                color: AppTheme.teacherColor, size: 18),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                          items: classes
+                              .map((c) => DropdownMenuItem(
+                                    value: c.id,
+                                    child: Text(c.displayName,
+                                        style: GoogleFonts.poppins(
+                                            color: Colors.white, fontSize: 13)),
+                                  ))
+                              .toList(),
+                          validator: (v) => _isClassTeacher && v == null
+                              ? 'Select a class'
+                              : null,
+                          onChanged: (v) =>
+                              setState(() => _classTeacherClassId = v),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
 
               const SizedBox(height: 32),
@@ -225,11 +361,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           height: 22,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : Text('Create User',
+                      : Text(
+                          _isEditing ? 'Save Changes' : 'Create User',
                           style: GoogleFonts.poppins(
                               fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
